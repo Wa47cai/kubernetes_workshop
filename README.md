@@ -111,7 +111,7 @@ docker login
 
 ```ruby
 # app.rb
-require "sinatra"
+require "sinatra" // 类似 java 的 import
 
 set :bind, "0.0.0.0"
 
@@ -130,15 +130,15 @@ ENTRYPOINT ["ruby", "app.rb"]
 ```
 
 ```
-docker build . -t guangzhengli/hellok8s:v1
+docker build . -t guangzhengli/hellok8s:v1 // build 一个镜像到本地, 镜像名称为 guangzhengli/hellok8s:v1
 ```
 
 ```
-docker run -p 4567:4567 --name hellok8s -d guangzhengli/hellok8s:v1
+docker run -p 4567:4567 --name hellok8s -d guangzhengli/hellok8s:v1 // 启动一个 container, 设置端口映射、名称
 ```
 
 ```
-docker push guangzhengli/hellok8s:v1
+docker push guangzhengli/hellok8s:v1 // 将该镜像 push 到 https://hub.docker.com/, 因为我们刚刚 docker login 过
 ```
 
 ## Pod
@@ -148,19 +148,19 @@ docker push guangzhengli/hellok8s:v1
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx
+  name: nginx // 自定义 pod 名称
 spec:
   containers:
-    - name: nginx-container
-      image: nginx
+    - name: nginx-container // 自定义 container 名称
+      image: nginx // docker 官网上 nginx 镜像的名称, 未指定版本号, 故拉的最新版本
 ```
 
 ```shell
-kubectl apply -f nginx.yaml
+kubectl apply -f nginx.yaml // 通过 nginx.yaml 文件启动对应的资源, 此处只有一个 pod 资源
 
-kubectl port-forward nginx 3001:80
+kubectl port-forward nginx 3001:80 // 将容器内的 80 端口映射到本地 3001 端口
 
-kubectl logs --follow nginx
+kubectl logs --follow nginx // 查看日志, 对应 k9s 的 l 命令
                ^        ^
                |        |
                 ------------- tells kubectl to keep
@@ -213,24 +213,25 @@ kubectl port-forward hellok8s 4567:4567
 
 ## Deployment
 
+> deployment 执行后, 生成的 pod 名称会有3段, 例如 hellok8s-6477bb6d56-8hvqw, 多个 pod 前两段名称是一样的, 第三个不一样, 前两段名称就是 replicaset 的名称, 对 deployment 做变更后(例如版本升级), 会新生成一个 replicaset
 ```yaml
 # deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hellok8s
+  name: hellok8s // 自定义 deployment 名称
 spec:
-  replicas: 1
+  replicas: 1 // 副本数量
   selector:
     matchLabels:
-      app: hellok8s
-  template:
+      app: hellok8s // 需要与 pod 的 metadata.name 一致, 否则无法管理
+  template: // template 就是指 pod 信息
     metadata:
       labels:
-        app: hellok8s
+        app: hellok8s // 对应单独配置 pod 资源时的 metadata.name
     spec:
       containers:
-        - image: guangzhengli/hellok8s:v1
+        - image: guangzhengli/hellok8s:v1 // 版本控制
           name: hellok8s-container
 ```
 
@@ -413,7 +414,7 @@ spec:
       containers:
       - image: guangzhengli/hellok8s:v2 # Still using v2
         name: hellok8s-container
-        readinessProbe: # New readiness probe
+        readinessProbe: # New readiness probe // 探活配置, 如果探活失败, 则当前 pod 会失败, 且不会重启其他 pod
           periodSeconds: 1
           successThreshold: 5
           httpGet:
@@ -442,10 +443,10 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: hellok8s
+    app: hellok8s // 对应 pod 的 name
   ports:
-  - port: 4567
-    nodePort: 30001
+  - port: 4567 // pod 的端口号
+    nodePort: 30001 // service 暴露出来的端口号
 ```
 
 ```
@@ -506,6 +507,8 @@ curl http://localhost:30001
 ```
 
 ## ingress
+
+> 定义路由, 和 nginx 路由作用类似
 
 ```shell
 minikube addons enable ingress
@@ -615,14 +618,14 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: / // "/"请求打到 nginx-svc 这个 service 资源上
             pathType: Prefix
             backend:
               service:
                 name: nginx-svc
                 port:
                   number: 1234
-          - path: /hello
+          - path: /hello // "/hello"请求打到 hellok8s-svc 这个 service 资源上
             pathType: Prefix
             backend:
               service:
@@ -956,7 +959,7 @@ kind: Secret
 metadata:
   name: hellok8s-secret
 stringData:
-  SECRET_MESSAGE: "It works with a Secret"
+  SECRET_MESSAGE: "It works with a Secret" // 自动 base64, 读取数据后需要 decode
 ```
 
 ```shell
